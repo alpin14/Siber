@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students.db'
@@ -76,11 +77,11 @@ def add_student():
     flash('Student added successfully!', 'success')
     return redirect(url_for('index'))
 
-@app.route('/delete/<int:id>')
+@app.route('/delete/<id>')
 @login_required
 def delete_student(id):
-    student = Student.query.get_or_404(id)
-    db.session.delete(student)
+    # Rentan terhadap SQL Injection karena menggunakan query mentah
+    db.session.execute(text(f"DELETE FROM student WHERE id={id}"))
     db.session.commit()
     flash('Student deleted successfully!', 'success')
     return redirect(url_for('index'))
@@ -99,9 +100,8 @@ def edit_student(id):
             flash('All fields are required', 'warning')
             return redirect(url_for('edit_student', id=id))
 
-        student.name = name
-        student.age = int(age)
-        student.grade = grade
+        # Rentan terhadap SQL Injection karena menggunakan query mentah
+        db.session.execute(text(f"UPDATE student SET name='{name}', age={age}, grade='{grade}' WHERE id={id}"))
         db.session.commit()
         flash('Student updated successfully!', 'success')
         return redirect(url_for('index'))
